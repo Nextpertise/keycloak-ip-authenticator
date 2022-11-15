@@ -1,10 +1,8 @@
-package com.github.lukaszbudnik.keycloak.ipauthenticator;
+package com.github.nextpertise.keycloak.ipauthenticator;
 
-import static org.keycloak.provider.ProviderConfigProperty.STRING_TYPE;
-
+import static org.keycloak.provider.ProviderConfigProperty.BOOLEAN_TYPE;
 import java.util.Collections;
 import java.util.List;
-
 import org.keycloak.Config;
 import org.keycloak.authentication.Authenticator;
 import org.keycloak.authentication.AuthenticatorFactory;
@@ -18,7 +16,7 @@ public class IPAuthenticatorFactory implements AuthenticatorFactory {
     public static final String ID = "ipauthenticator";
 
     private static final Authenticator AUTHENTICATOR_INSTANCE = new IPAuthenticator();
-    static final String ALLOWED_IP_ADDRESS_CONFIG = "allowed_ip_address";
+    static final String FAIL_OR_FORCE_OTP = "fail_or_force_otp";
 
     @Override
     public Authenticator create(KeycloakSession keycloakSession) {
@@ -31,13 +29,13 @@ public class IPAuthenticatorFactory implements AuthenticatorFactory {
     }
 
     @Override
-    public boolean isConfigurable() {
-        return true;
-    }
+    public boolean isConfigurable() { return true; }
 
     @Override
     public AuthenticationExecutionModel.Requirement[] getRequirementChoices() {
-        return new AuthenticationExecutionModel.Requirement[] { AuthenticationExecutionModel.Requirement.REQUIRED };
+        return new AuthenticationExecutionModel.Requirement[] { AuthenticationExecutionModel.Requirement.REQUIRED,
+                AuthenticationExecutionModel.Requirement.ALTERNATIVE, AuthenticationExecutionModel.Requirement.DISABLED
+        };
     }
 
     @Override
@@ -47,17 +45,17 @@ public class IPAuthenticatorFactory implements AuthenticatorFactory {
 
     @Override
     public String getHelpText() {
-        return "Limits access to only allowed IP Address";
+        return "Limits access to only allowed IP subnets";
     }
 
     @Override
     public List<ProviderConfigProperty> getConfigProperties() {
         ProviderConfigProperty name = new ProviderConfigProperty();
 
-        name.setType(STRING_TYPE);
-        name.setName(ALLOWED_IP_ADDRESS_CONFIG);
-        name.setLabel("IP Address from which sign ins are allowed");
-        name.setHelpText("Only accepts IP addresses, no CIDR nor masks nor ranges supported");
+        name.setType(BOOLEAN_TYPE);
+        name.setName(FAIL_OR_FORCE_OTP);
+        name.setLabel("When enabled this module will return a failure if remote ip-address does not match.");
+        name.setHelpText("This module can either fail or force otp. OTP is enforced by user attribute: 'ip_based_otp_conditional'."); // TODO: 'ip_based_otp_conditional' can be loaded from var.
 
         return Collections.singletonList(name);
     }
