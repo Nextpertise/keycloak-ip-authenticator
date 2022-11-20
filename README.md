@@ -1,10 +1,12 @@
 # keycloak-ip-authenticator
 
-This is a simple Keycloak Java Authenticator that checks if the user is coming from a trusted network or not. If the user is coming from a trusted network MFA step is skipped. If the user is coming from a non-trusted network MFA step is forced.
+This is a Keycloak Java Authenticator that checks if the user is coming from a trusted network or not. If the user is coming from a trusted network MFA step is skipped. If the user is coming from a non-trusted network MFA step is forced.
 
-The authenticator has to be used together with `Conditional OTP Form` component.
+The authenticator has to be used together with `Conditional OTP Form` or `Conditional OTP Direct Grant` component.
 
-See the following Youtube video which explains how to deploy and configure it in Keycloak: https://youtu.be/u36QK9oyrtM.
+This Authenticator is inspired by https://github.com/lukaszbudnik/keycloak-ip-authenticator.
+
+The `Conditional OTP Direct Grant` is a custom Authenticator and can be found here: https://github.com/Nextpertise/keycloak-validate-otp-conditional.
 
 ## build
 
