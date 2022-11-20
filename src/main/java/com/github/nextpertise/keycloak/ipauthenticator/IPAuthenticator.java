@@ -41,9 +41,9 @@ public class IPAuthenticator implements Authenticator {
         KeycloakSession session = context.getSession();
         RealmModel realm = context.getRealm();
         UserModel user = context.getUser();
-        Map<String, List<String>> UserAttributes = user.getAttributes();
         String remoteIPAddress = context.getConnection().getRemoteAddr();
         String realIPAddress = remoteIPAddress;
+        List<IpItem> IpWhitelist = null;
 
         logger.infof("IP Authenticator - TCP Remote IP address: %s", remoteIPAddress);
         if (getTrustXRealIpHeader(context)) {
@@ -57,23 +57,11 @@ public class IPAuthenticator implements Authenticator {
                 }
             }
         }
-        Boolean match = false;
 
-        if(UserAttributes.containsKey("ip_whitelisting")) {
-            ObjectMapper objectMapper = new ObjectMapper();
-            if (UserAttributes.get("ip_whitelisting").size() > 0) {
-                List<IpItem> IpWhitelist = null;
-                try {
-                    IpWhitelist = objectMapper.readValue(UserAttributes.get("ip_whitelisting")
-                            .get(0), new TypeReference<List<IpItem>>() {
-                    });
-                } catch (JsonProcessingException e) {
-                    throw new RuntimeException(e);
-                }
-                if (this.verify_ip_address(realIPAddress, IpWhitelist)) {
-                    match = true;
-                }
-            }
+        Boolean match = false;
+        IpWhitelist = getUserIpWhitelisting(user);
+        if (this.verify_ip_address(realIPAddress, IpWhitelist)) {
+            match = true;
         }
 
         if (!match) {
@@ -125,6 +113,24 @@ public class IPAuthenticator implements Authenticator {
         }
 
         return XRealIpTrustedNetworks;
+    }
+
+    private List getUserIpWhitelisting(UserModel user) {
+        Map<String, List<String>> UserAttributes = user.getAttributes();
+        List<IpItem> IpWhitelist = null;
+        if(UserAttributes.containsKey("ip_whitelisting")) {
+            ObjectMapper objectMapper = new ObjectMapper();
+            if (UserAttributes.get("ip_whitelisting").size() > 0) {
+                try {
+                    IpWhitelist = objectMapper.readValue(UserAttributes.get("ip_whitelisting")
+                            .get(0), new TypeReference<List<IpItem>>() {
+                    });
+                } catch (JsonProcessingException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+        return IpWhitelist;
     }
 
     @Override
