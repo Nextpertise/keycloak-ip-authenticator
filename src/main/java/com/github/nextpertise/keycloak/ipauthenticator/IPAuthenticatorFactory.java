@@ -1,6 +1,10 @@
 package com.github.nextpertise.keycloak.ipauthenticator;
 
-import static org.keycloak.provider.ProviderConfigProperty.BOOLEAN_TYPE;
+import static java.util.Arrays.asList;
+import static org.keycloak.authentication.authenticators.browser.ConditionalOtpFormAuthenticator.OTP_CONTROL_USER_ATTRIBUTE;
+import static org.keycloak.authentication.authenticators.browser.ConditionalOtpFormAuthenticator.SKIP_OTP_ROLE;
+import static org.keycloak.provider.ProviderConfigProperty.*;
+
 import java.util.Collections;
 import java.util.List;
 import org.keycloak.Config;
@@ -17,6 +21,8 @@ public class IPAuthenticatorFactory implements AuthenticatorFactory {
 
     private static final Authenticator AUTHENTICATOR_INSTANCE = new IPAuthenticator();
     static final String FAIL_OR_FORCE_OTP = "fail_or_force_otp";
+    static final String TRUST_X_REAL_IP_HEADER = "trust_x_real_ip_header";
+    static final String TRUSTED_NETWORKS = "trusted_networks";
 
     @Override
     public Authenticator create(KeycloakSession keycloakSession) {
@@ -40,7 +46,7 @@ public class IPAuthenticatorFactory implements AuthenticatorFactory {
 
     @Override
     public boolean isUserSetupAllowed() {
-        return false;
+        return true;
     }
 
     @Override
@@ -50,14 +56,31 @@ public class IPAuthenticatorFactory implements AuthenticatorFactory {
 
     @Override
     public List<ProviderConfigProperty> getConfigProperties() {
-        ProviderConfigProperty name = new ProviderConfigProperty();
+        ProviderConfigProperty failOrForceOtp = new ProviderConfigProperty();
+        failOrForceOtp.setType(BOOLEAN_TYPE);
+        failOrForceOtp.setName(FAIL_OR_FORCE_OTP);
+        failOrForceOtp.setLabel("When enabled this module will return a failure " +
+                "if remote ip-address does not match.");
+        failOrForceOtp.setHelpText(String.format("This module can either fail or force otp. " +
+                "OTP is enforced by user attribute: '%s'.", IPAuthenticator.IP_BASED_OTP_CONDITIONAL_USER_ATTRIBUTE));
+        failOrForceOtp.setDefaultValue(true);
 
-        name.setType(BOOLEAN_TYPE);
-        name.setName(FAIL_OR_FORCE_OTP);
-        name.setLabel("When enabled this module will return a failure if remote ip-address does not match.");
-        name.setHelpText("This module can either fail or force otp. OTP is enforced by user attribute: 'ip_based_otp_conditional'."); // TODO: 'ip_based_otp_conditional' can be loaded from var.
+        ProviderConfigProperty trustXRealIpHeader = new ProviderConfigProperty();
+        trustXRealIpHeader.setType(BOOLEAN_TYPE);
+        trustXRealIpHeader.setName(TRUST_X_REAL_IP_HEADER);
+        trustXRealIpHeader.setLabel("Respect X-REAL-IP Header");
+        trustXRealIpHeader.setHelpText("Respect IP-address as defined X-REAL-IP header, " +
+                "if not defined use TCP remote IP.");
+        trustXRealIpHeader.setDefaultValue(false);
 
-        return Collections.singletonList(name);
+        ProviderConfigProperty trustedNetworks = new ProviderConfigProperty();
+        trustedNetworks.setType(STRING_TYPE);
+        trustedNetworks.setName(TRUSTED_NETWORKS);
+        trustedNetworks.setLabel("Allow X-REAL-IP only from trusted networks.");
+        trustedNetworks.setHelpText("Allow X-REAL-IP only from trusted networks. By default allow all networks.");
+        trustedNetworks.setDefaultValue("[{\"subnet\": \"0.0.0.0/0\", \"description\": \"Allow all IPv4 networks\"}]");
+
+        return asList(failOrForceOtp, trustXRealIpHeader, trustedNetworks);
     }
 
     @Override

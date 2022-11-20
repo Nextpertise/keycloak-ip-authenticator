@@ -18,7 +18,7 @@ import javax.ws.rs.core.Response;
 public class IPAuthenticator implements Authenticator {
 
     private static final Logger logger = Logger.getLogger(IPAuthenticator.class);
-    private static final String IP_BASED_OTP_CONDITIONAL_USER_ATTRIBUTE = "ip_based_otp_conditional";
+    public static final String IP_BASED_OTP_CONDITIONAL_USER_ATTRIBUTE = "ip_based_otp_conditional";
 
     public static boolean verify_ip_address(String remote_ip, List<IpItem> IpWhitelist) {
         for (IpItem item : IpWhitelist) {
@@ -37,12 +37,26 @@ public class IPAuthenticator implements Authenticator {
 
     @Override
     public void authenticate(AuthenticationFlowContext context) {
-        logger.infof("Enter IP Authenticater");
+        logger.infof("IP Authenticator - Enter");
         KeycloakSession session = context.getSession();
         RealmModel realm = context.getRealm();
         UserModel user = context.getUser();
         Map<String, List<String>> UserAttributes = user.getAttributes();
-        String remoteIPAddress = context.getConnection().getRemoteAddr(); // TODO: Check if X-REAL-IP header is set when remoteAddr equals to X
+        String remoteIPAddress = context.getConnection().getRemoteAddr();
+        String realIPAddress = remoteIPAddress;
+
+        logger.infof("IP Authenticator - TCP Remote IP address: %s", remoteIPAddress);
+        if (getTrustXRealIpHeader(context)) {
+            logger.infof("IP Authenticator - Do check X-REAL-IP");
+            if (this.verify_ip_address(realIPAddress, getTrustedNetworks(context))) {
+                logger.infof("IP Authenticator - TCP Remote IP address " +
+                        "from an authenticated network for X-REAL-IP header.");
+                if (context.getHttpRequest().getHttpHeaders().getRequestHeader("X-REAL-IP").size() > 0) {
+                    realIPAddress = context.getHttpRequest().getHttpHeaders().getRequestHeader("X-REAL-IP").get(0);
+                    logger.infof("IP Authenticator - X-REAL-IP address: %s", realIPAddress);
+                }
+            }
+        }
         Boolean match = false;
 
         if(UserAttributes.containsKey("ip_whitelisting")) {
@@ -56,16 +70,18 @@ public class IPAuthenticator implements Authenticator {
                 } catch (JsonProcessingException e) {
                     throw new RuntimeException(e);
                 }
-                if (this.verify_ip_address(remoteIPAddress, IpWhitelist)) {
+                if (this.verify_ip_address(realIPAddress, IpWhitelist)) {
                     match = true;
                 }
             }
         }
 
         if (!match) {
-            logger.infof("IP Authenticater: IPs do not match. Realm %s expected %s but user %s logged from %s",
-                    realm.getName(), "TODO", user.getUsername(), remoteIPAddress);
-            Response challengeResponse = errorResponse(Response.Status.UNAUTHORIZED.getStatusCode(), "invalid_grant", "Invalid IP address");
+            logger.infof("IP Authenticator - IPs do not match. " +
+                            "Realm %s expected whitelisted IP but user %s logged from %s",
+                    realm.getName(), user.getUsername(), realIPAddress);
+            Response challengeResponse = errorResponse(Response.Status.UNAUTHORIZED.getStatusCode(),
+                    "invalid_grant", "Invalid IP address");
             if (this.getFailOrForceOtp(context)) {
                 context.failure(AuthenticationFlowError.INVALID_USER, challengeResponse);
                 return;
@@ -75,7 +91,7 @@ public class IPAuthenticator implements Authenticator {
             return;
         }
 
-        logger.infof("IP Authenticater: Pass.");
+        logger.infof("IP Authenticator - Pass.");
         if (!this.getFailOrForceOtp(context)) {
             user.setAttribute(IP_BASED_OTP_CONDITIONAL_USER_ATTRIBUTE, Collections.singletonList("skip"));
         }
@@ -86,6 +102,29 @@ public class IPAuthenticator implements Authenticator {
         AuthenticatorConfigModel configModel = context.getAuthenticatorConfig();
         Map<String, String> config = configModel.getConfig();
         return Boolean.valueOf(config.get(IPAuthenticatorFactory.FAIL_OR_FORCE_OTP));
+    }
+
+    private Boolean getTrustXRealIpHeader(AuthenticationFlowContext context) {
+        AuthenticatorConfigModel configModel = context.getAuthenticatorConfig();
+        Map<String, String> config = configModel.getConfig();
+        return Boolean.valueOf(config.get(IPAuthenticatorFactory.TRUST_X_REAL_IP_HEADER));
+    }
+
+    private List getTrustedNetworks(AuthenticationFlowContext context) {
+        AuthenticatorConfigModel configModel = context.getAuthenticatorConfig();
+        Map<String, String> config = configModel.getConfig();
+        ObjectMapper objectMapper = new ObjectMapper();
+
+        List<IpItem> XRealIpTrustedNetworks;
+        try {
+            XRealIpTrustedNetworks = objectMapper.readValue(config.get(IPAuthenticatorFactory.TRUSTED_NETWORKS)
+                    , new TypeReference<List<IpItem>>() {
+            });
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+
+        return XRealIpTrustedNetworks;
     }
 
     @Override
