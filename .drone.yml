@@ -10,7 +10,7 @@ steps:
     - clone
   commands:
   - mvn clean install
-  - find .
+  - find -name '*.jar' target
 
 image_pull_secrets:
   - platform_harbor_pull_secrets
