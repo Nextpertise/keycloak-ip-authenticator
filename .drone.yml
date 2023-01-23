@@ -8,9 +8,7 @@ steps:
   image: registry.nextpertise.tools/nextpertise-proxy/library/maven:3.8.7-openjdk-18
   depends_on:
     - clone
-  privileged: true
-  commands:
-  - maven clean install
+  command: clean install
 
 image_pull_secrets:
   - platform_harbor_pull_secrets
