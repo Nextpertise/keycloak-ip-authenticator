@@ -10,6 +10,7 @@ steps:
     - clone
   commands:
   - mvn clean install
+  - find .
 
 image_pull_secrets:
   - platform_harbor_pull_secrets
