@@ -117,12 +117,12 @@ public class IPAuthenticator implements Authenticator {
 
     private List getUserIpWhitelisting(UserModel user) {
         Map<String, List<String>> UserAttributes = user.getAttributes();
-        List<IpItem> IpWhitelist = null;
-        if(UserAttributes.containsKey("ip_whitelisting")) {
+        List<IpItem> IpWhitelist = Collections.<IpItem>emptyList();
+        if(UserAttributes.containsKey("ip_whitelist")) {
             ObjectMapper objectMapper = new ObjectMapper();
-            if (UserAttributes.get("ip_whitelisting").size() > 0) {
+            if (UserAttributes.get("ip_whitelist").size() > 0) {
                 try {
-                    IpWhitelist = objectMapper.readValue(UserAttributes.get("ip_whitelisting")
+                    IpWhitelist = objectMapper.readValue(UserAttributes.get("ip_whitelist")
                             .get(0), new TypeReference<List<IpItem>>() {
                     });
                 } catch (JsonProcessingException e) {
