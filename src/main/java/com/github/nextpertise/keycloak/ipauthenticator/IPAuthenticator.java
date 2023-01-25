@@ -53,6 +53,11 @@ public class IPAuthenticator implements Authenticator {
                     realIPAddress = context.getHttpRequest().getHttpHeaders().getRequestHeader("X-REAL-IP").get(0);
                     logger.infof("IP Authenticator - X-REAL-IP address: %s", realIPAddress);
                 }
+                logger.infof("IP Authenticator - Do check X-USER-IP");
+                if (context.getHttpRequest().getHttpHeaders().getRequestHeader("X-USER-IP").size() > 0) {
+                    realIPAddress = context.getHttpRequest().getHttpHeaders().getRequestHeader("X-USER-IP").get(0);
+                    logger.infof("IP Authenticator - X-USER-IP address: %s", realIPAddress);
+                }
             } else {
                 logger.infof("IP Authenticator - TCP Remote IP address " +
                         "from an authenticated network for X-REAL-IP header. We do not use the header.");
