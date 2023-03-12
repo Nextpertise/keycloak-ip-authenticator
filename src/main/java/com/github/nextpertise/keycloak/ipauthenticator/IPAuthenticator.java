@@ -75,7 +75,7 @@ public class IPAuthenticator implements Authenticator {
                             "Realm %s expected whitelisted IP but user %s logged from %s",
                     realm.getName(), user.getUsername(), realIPAddress);
             Response challengeResponse = errorResponse(Response.Status.UNAUTHORIZED.getStatusCode(),
-                    "invalid_grant", "Invalid IP address");
+                    "invalid_grant", String.format("Your IP address (%s) is not allowed", realIPAddress));
             if (this.getFailOrForceOtp(context)) {
                 context.failure(AuthenticationFlowError.INVALID_USER, challengeResponse);
                 return;
